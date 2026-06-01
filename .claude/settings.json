@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/core/safety/guard.py" }
+        ]
+      },
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/core/safety/guard.py" }
+        ]
+      },
+      {
+        "matcher": "WebFetch",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/core/safety/guard.py" }
+        ]
+      }
+    ]
+  }
+}

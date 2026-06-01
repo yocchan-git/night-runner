@@ -46,6 +46,9 @@ mkdir -p "$NR_RUNS_DIR" "$STATE_DIR"
 # CWD を repo root に固定（launchd 起動だと CWD 不定で相対パス job が壊れる / 実測）
 cd "$NR_ROOT" || { echo "cd $NR_ROOT 失敗" >> "$LOG"; exit 1; }
 
+# 安全ガード（PreToolUse フック guard.py）が参照する env を export する。
+export NR_ROOT NR_RUNS_DIR
+
 {
   echo "==== runner start ${RUN_TS} (PID $$, iteration ${ITERATION}/${MAX_ITER}) ===="
   echo "CWD=$(pwd)"
@@ -76,14 +79,20 @@ count_done() {
 
 # 終端 summary を書く（契約フィールド + 人間可読 + sentinel）。author = ランチャ。
 write_summary() {
-  local status="$1" started; started="$(count_done)"
+  local status="$1" started sb=0 i name m
+  started="$(count_done)"
+  for ((i=0; i<PLANNED; i++)); do
+    m="$(marker_path "${JOB_NAMES[$i]}")"
+    [ -f "$m" ] && head -1 "$m" | grep -qi '^safety_blocked' && sb=$((sb+1))
+  done
   {
     echo "# night-runner summary ${TODAY}"
     echo ""
     echo "**run_at**: ${RUN_TS}"
-    echo "**phase**: 2"
+    echo "**phase**: 3"
     echo "**total_tasks_planned**: ${PLANNED}"
     echo "**total_tasks_started**: ${started}"
+    echo "**safety_blocked**: ${sb}"
     echo "**iteration**: ${ITERATION}"
     echo "**status**: ${status}"
     echo ""
@@ -132,6 +141,16 @@ DONE_BEFORE="$(count_done)"
 if [ "$DONE_BEFORE" -ge "$PLANNED" ]; then
   nr_log "全 job 確定済み（${DONE_BEFORE}/${PLANNED}）。完了で終了。" "$LOG"
   write_summary "completed_all"
+  exit 0
+fi
+
+# --- 安全ガードの前提確認（fail-closed）------------------------------------
+# guard.py（PreToolUse フック）は python3 で動く。python3 が無いとフック自体が
+# 起動できず fail-open（危険操作が素通り）になる。それは致命的なので、その場合は
+# claude を起動せずバッチを中止する（安全側に倒す）。
+if ! nr_require_tool python3 >/dev/null 2>&1; then
+  nr_log "❌ python3 未解決 → 安全ガードを動かせない。fail-closed でバッチ中止。" "$LOG"
+  write_summary "aborted_by_errors"
   exit 0
 fi
 
