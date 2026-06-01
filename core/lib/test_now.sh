@@ -32,7 +32,11 @@ if [ -z "${NR_LABEL:-}" ]; then
   exit 1
 fi
 
-if ! launchctl list 2>/dev/null | grep -q "$NR_LABEL"; then
+# 注意: `launchctl list | grep -q` は pipefail 下で grep -q の早期終了が
+# launchctl に SIGPIPE を送り、pipeline が非0になる（=偽陰性）。
+# 変数に取ってから here-string で照合する。
+LOADED="$(launchctl list 2>/dev/null || true)"
+if ! grep -qF "$NR_LABEL" <<<"$LOADED"; then
   echo "❌ $NR_LABEL が launchctl にロードされていません。先に install してください。"
   exit 1
 fi

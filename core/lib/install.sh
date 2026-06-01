@@ -110,7 +110,9 @@ echo "  plist 配備: $PLIST_DEST"
 chmod +x "$RUNNER_PATH" 2>/dev/null || true
 
 # --- 5. launchctl (再)ロード ------------------------------------------------
-if launchctl list 2>/dev/null | grep -q "$NR_LABEL"; then
+# pipefail + grep -q の SIGPIPE 偽陰性を避けるため変数経由で照合
+LOADED="$(launchctl list 2>/dev/null || true)"
+if grep -qF "$NR_LABEL" <<<"$LOADED"; then
   launchctl unload "$PLIST_DEST" 2>/dev/null || true
   echo "  既存ロードを unload"
 fi
