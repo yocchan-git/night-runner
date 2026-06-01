@@ -30,8 +30,13 @@ MAX_TURNS="${NR_MAX_TURNS:-60}"
 
 mkdir -p "$NR_RUNS_DIR"
 
+# CWD を repo root に固定する。launchd 起動だと CWD が不定（/ 等）になり、
+# job 仕様中の相対パス（例: runs/scratch/）が解決できない回が出るため（実測で再現）。
+cd "$NR_ROOT" || { echo "cd $NR_ROOT 失敗" >> "$LOG"; exit 1; }
+
 {
   echo "==== runner start ${RUN_TS} (PID $$, iteration ${ITERATION}) ===="
+  echo "CWD=$(pwd)"
   echo "PATH=${PATH}"
 } >> "$LOG"
 
