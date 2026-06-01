@@ -37,7 +37,7 @@ night-runner ディレクトリで Claude Code を開き、話しかけるだけ
 
 - 「インストールして」 → `install` スキルが launchd 登録（PATH 検出・plist 配備まで自動）
 - 「今すぐテストして」 → `test-now` スキルが本番と同じ環境で1回即時実行して結果を見せる
-- （Phase 4 以降）「この作業を夜間に任せたい」 → `setup-job` スキルが対話で job 化・登録
+- 「この作業を夜間に任せたい」 → `setup-job` スキルが対話で job 化・隔離テスト・夜間登録（ユーザーはファイルを触らない）
 
 ---
 
@@ -59,7 +59,7 @@ night-runner ディレクトリで Claude Code を開き、話しかけるだけ
 - [x] **Phase 0** — 即時テストの口（install / test-now / plist テンプレ / PATH 検出 / heartbeat runner）
 - [x] **Phase 1** — 動く骨格（claude -p で enabled job を実行 → summary に契約フィールドを記録）
 - [x] **Phase 2** — 止まらない制御（完了マーカーで進捗判定 → started<planned で exec 再起動・上限 N で明示 abort・再着手防止）
-- [x] **Phase 3** — 致命傷を防ぐ（PreToolUse フックで claude の外側から危険操作を物理ブロック・該当 job だけ safety_blocked）
-- [ ] Phase 4 — 入口（定型作業をスキル化するスキル）
+- [x] **Phase 4（機構）** — 入口 `setup-job` スキル（対話で job 生成・隔離即テスト・修正・夜間登録を裏で代行）
+  - ⚠ 「非エンジニアが対話だけで意味のある job を作れるか」は**実ユーザーテスト待ち**（機構の動作とは別）
 
 > macOS 専用。Claude Code CLI（`claude`）が必要。

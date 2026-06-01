@@ -64,6 +64,22 @@ if [ -d "$JOBS_DIR" ]; then
     JOB_FILES+=("$jobfile")
   done < <(find "$JOBS_DIR" -mindepth 2 -maxdepth 2 -name 'job.md' | sort)
 fi
+
+# --- only-job モード（setup-job の即テスト用 / one-shot）---------------------
+# runs/.only-job に job 名が書かれていれば、その1件だけを enabled 無視で実行する。
+# setup-job が「今作った job だけ」を隔離テストするための口。使ったら即消す。
+ONLY_JOB_FILE="${NR_RUNS_DIR}/.only-job"
+if [ -f "$ONLY_JOB_FILE" ]; then
+  only="$(head -1 "$ONLY_JOB_FILE" | tr -d '[:space:]')"
+  rm -f "$ONLY_JOB_FILE"
+  if [ -n "$only" ] && [ -f "$JOBS_DIR/$only/job.md" ]; then
+    JOB_NAMES=("$only"); JOB_FILES=("$JOBS_DIR/$only/job.md")
+    nr_log "ONLY-JOB モード: '${only}' のみ実行（enabled 無視）" "$LOG"
+  else
+    nr_log "ONLY-JOB 指定が不正（'${only}'）。通常モードで続行。" "$LOG"
+  fi
+fi
+
 PLANNED="${#JOB_NAMES[@]}"
 
 marker_path() { echo "${STATE_DIR}/$1.done"; }
