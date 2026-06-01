@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  night-runner LaunchAgent テンプレート（コア）。
+  install スキルが __PLACEHOLDER__ を config の値で置換して
+    ~/Library/LaunchAgents/<NR_LABEL>.plist
+  に書き出す。ユーザーは手で編集しない。
+
+  caffeinate -i で実行中の再 sleep を防ぐ（wake 自体は pmset repeat 側の責務）。
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>__NR_LABEL__</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/caffeinate</string>
+        <string>-i</string>
+        <string>__RUNNER_PATH__</string>
+    </array>
+
+    <!-- launchd は PATH が極小なので、検出した node/npx/claude の実パスを明示注入（資料 2-1） -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>__NR_PATH__</string>
+        <key>HOME</key>
+        <string>__NR_HOME__</string>
+    </dict>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>__NR_SCHEDULE_HOUR__</integer>
+        <key>Minute</key>
+        <integer>__NR_SCHEDULE_MINUTE__</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>__NR_RUNS_DIR__/launchd.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>__NR_RUNS_DIR__/launchd.err.log</string>
+
+    <!-- load 時の即時実行はしない。即時テストは launchctl start で明示的に行う。 -->
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

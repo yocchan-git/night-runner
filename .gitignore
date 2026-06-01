@@ -1,0 +1,11 @@
+# マシン固有・パス直書きを公開リポジトリに混ぜない
+config/config.sh
+config/config.sh.bak
+
+# 実行結果（ローカルの記録）
+runs/*
+!runs/README.md
+!runs/.gitkeep
+
+# OS
+.DS_Store
