@@ -58,7 +58,7 @@ night-runner ディレクトリで Claude Code を開き、話しかけるだけ
 
 - [x] **Phase 0** — 即時テストの口（install / test-now / plist テンプレ / PATH 検出 / heartbeat runner）
 - [x] **Phase 1** — 動く骨格（claude -p で enabled job を実行 → summary に契約フィールドを記録）
-- [ ] Phase 2 — 止まらない制御（強制ループ）
+- [x] **Phase 2** — 止まらない制御（完了マーカーで進捗判定 → started<planned で exec 再起動・上限 N で明示 abort・再着手防止）
 - [ ] Phase 3 — 致命傷を防ぐ（デフォルト安全境界）
 - [ ] Phase 4 — 入口（定型作業をスキル化するスキル）
 
