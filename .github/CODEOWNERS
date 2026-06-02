@@ -1,0 +1,16 @@
+# CODEOWNERS — main へのマージ時に必須レビューを要求する対象
+# 文法: 後にマッチした行が優先。ここでは全て @yocchan-git に集約。
+# 「Require review from Code Owners」を有効にすると、これらの変更を含む PR は
+# @yocchan-git の承認なしにマージできない。
+
+# 既定: リポジトリ全体のオーナー
+*                        @yocchan-git
+
+# Phase 3 の安全機構 — 第三者に書き換えさせない最重要領域
+/core/safety/            @yocchan-git
+
+# フック登録（安全境界の有効化スイッチ）
+/.claude/settings.json   @yocchan-git
+
+# 実行系コア（runner / ランチャ / テンプレ）
+/core/                   @yocchan-git
