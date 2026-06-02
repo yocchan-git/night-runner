@@ -30,7 +30,7 @@ SECRETS = (r'(\.env\b|\.ssh/|id_rsa|id_ed25519|id_ecdsa|\.pem\b|\.p12\b|\.netrc'
 
 # SECRET_FILES = 「秘密の“ファイル”を参照している」ことを示す指標（SECRETS の部分集合）。
 # token/password/secret/api_key 等の“語”は除外している点が重要:
-#   - `-H "X-ChatWorkToken: $CHATWORK_API_TOKEN"` のような認証ヘッダは SECRET_FILES に当たらない
+#   - `-H "X-ChatWorkToken: $CHATWORK_BOT_API_TOKEN"` のような認証ヘッダは SECRET_FILES に当たらない
 #     （正規のAPI認証であり、サンクション済み送信先になら通してよい）。
 #   - 一方 `.ssh/id_rsa` `.env` `credentials` 等の“ファイル”は、宛先がサンクション済みでも
 #     送出させない（秘密ファイルの中身を外へ出す経路を塞ぐ）。
@@ -166,7 +166,7 @@ def check_rm(cmd, root):
 # 例: NR_ALLOWED_SEND_URLS = ^https://api\.chatwork\.com/v2/rooms/[^/?#]+/messages$
 #
 #   通す (ALLOW):
-#     curl -X POST -H "X-ChatWorkToken: $CHATWORK_API_TOKEN" \
+#     curl -X POST -H "X-ChatWorkToken: $CHATWORK_BOT_API_TOKEN" \
 #          -d "body=..." https://api.chatwork.com/v2/rooms/123/messages
 #       → 全URLが一致(条件1) かつ 秘密ファイル参照なし(条件2)。トークンは認証ヘッダ。
 #
