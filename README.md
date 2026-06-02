@@ -41,6 +41,21 @@ night-runner ディレクトリで Claude Code を開き、話しかけるだけ
 
 ---
 
+## 使う人 / 貢献する人（目的別の入口）
+
+- **使うだけの人**: このリポジトリを **clone** して `install` するだけ。fork は不要。
+  あなたが作る job・実行ログ・生成物・設定（`config.sh`）は **すべてローカルに留まり、
+  `.gitignore` で追跡対象外**になっている。つまり **clone 元へ push し返さない限り、
+  あなたの実作業が公開されることはない**。
+- **改善を貢献したい人だけ fork**: コア（`core/`・`.claude/`）の改善 PR を出したい人向け。
+  `core/safety/` と `.claude/settings.json` は CODEOWNERS によりオーナーのレビュー必須。
+
+> **プライバシー設計**: `jobs/<あなたの job>/`・`runs/`（ログ/summary/state/safety.log/生成物）・
+> `config/config.sh`・`.env` 等は `.gitignore` 済み。追跡されるのはコード・テンプレ・
+> サンプル（`jobs/sample-hello/`）だけ。実データが誤って commit/公開されない既定になっている。
+
+---
+
 ## 構成
 
 | 場所 | 役割 |
