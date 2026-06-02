@@ -39,3 +39,7 @@ NR_MAX_ITERATIONS="10"
 # コアの core/safety/default-deny.md は常に効く。ここにプロジェクト固有の
 # 追加停止カテゴリを足せる（5-C-4）。Phase 3 で本実装。
 NR_EXTRA_DENY_FILE=""
+
+# 「意図した外部送信だけ通す」allowlist（guard.py が参照）は秘密と一緒に .env に置く。
+# 例: NR_ALLOWED_SEND_URLS='^https://api\.chatwork\.com/v2/rooms/[^/?#]+/messages'
+# 詳細は .env.example を参照（必ず単一引用符で囲む）。

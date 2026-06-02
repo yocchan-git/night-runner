@@ -34,5 +34,9 @@ credentials.json
 # Claude Code のローカル設定（権限許可リスト等。環境固有）
 .claude/settings.local.json
 
+# --- Python 生成物 ---
+__pycache__/
+*.pyc
+
 # --- OS ---------------------------------------------------------------------
 .DS_Store
