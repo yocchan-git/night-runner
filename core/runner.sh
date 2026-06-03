@@ -49,10 +49,9 @@ cd "$NR_ROOT" || { echo "cd $NR_ROOT 失敗" >> "$LOG"; exit 1; }
 # 安全ガード（PreToolUse フック guard.py）が参照する env を export する。
 export NR_ROOT NR_RUNS_DIR
 
-# .env があれば読み込む（job が使う秘密/設定。例: CHATWORK_API_TOKEN /
-# CHATWORK_ROOM_ID / IDEAS_MODE / NR_ALLOWED_SEND_URLS）。
-# set -a で以降の代入を自動 export → claude とそのツールフック(guard.py)にも伝わる。
-# .env は .gitignore 済み（トークンはコミットされない）。
+# .env があれば読み込む（各ジョブが使う秘密/設定や、安全境界の
+# NR_ALLOWED_SEND_URLS 等）。set -a で以降の代入を自動 export →
+# claude とそのツールフック(guard.py)にも伝わる。.env は .gitignore 済み。
 if [ -f "${NR_ROOT}/.env" ]; then
   set -a
   # shellcheck disable=SC1091

